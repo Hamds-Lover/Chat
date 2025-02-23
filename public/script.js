@@ -1,4 +1,4 @@
-const socket = io();
+const socket = io("https://sidrayan.onrender.com");
 const messagesDiv = document.getElementById("messages");
 const messageInput = document.getElementById("messageInput");
 const sendButton = document.getElementById("sendButton");
