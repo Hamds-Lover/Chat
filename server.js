@@ -54,7 +54,7 @@ io.on("connection", (socket) => {
     console.log("A user connected:", socket.id);
 
     socket.on("set username", (username) => {
-        users[socket.id] = { username, status: "online" };
+        users[socket.id] = { username, status: "online", socketId: socket.id };
         io.emit("user list", users);
     });
 
