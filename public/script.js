@@ -1,4 +1,6 @@
-const socket = io("https://sidrayan.onrender.com/");
+const socket = io();
+let currentUsername = "";
+let activeChatUser = "";
 
 function showSignup() {
     document.getElementById("loginScreen").style.display = "none";
@@ -43,6 +45,7 @@ async function login() {
     if (data.success) {
         document.getElementById("authContainer").style.display = "none";
         document.getElementById("chatContainer").style.display = "flex";
+        currentUsername = username;
         socket.emit("set username", username);
     } else {
         alert("Invalid username or password.");
@@ -61,14 +64,20 @@ socket.on("user list", (users) => {
 });
 
 function startChat(username) {
-    document.getElementById("messages").innerHTML = "Chat with " + username;
+    activeChatUser = username;
+    document.getElementById("chatHeader").textContent = username + " (Online)";
+    document.getElementById("messages").innerHTML = "";
+    socket.emit("get messages", { sender: currentUsername, receiver: username });
 }
 
 function sendMessage() {
     const messageInput = document.getElementById("messageInput");
     const message = messageInput.value;
-    socket.emit("private message", { sender: socket.id, message });
+    if (message.trim() === "") return;
+    
+    socket.emit("private message", { sender: currentUsername, receiver: activeChatUser, message });
     messageInput.value = "";
+    showTyping(false);
 }
 
 socket.on("private message", ({ sender, message }) => {
@@ -76,4 +85,23 @@ socket.on("private message", ({ sender, message }) => {
     const messageElement = document.createElement("p");
     messageElement.textContent = `${sender}: ${message}`;
     messagesDiv.appendChild(messageElement);
+});
+
+// Typing Indicator
+function showTyping(isTyping) {
+    socket.emit("typing", { sender: currentUsername, receiver: activeChatUser, isTyping });
+}
+
+document.getElementById("messageInput").addEventListener("input", () => {
+    showTyping(true);
+    setTimeout(() => showTyping(false), 2000);
+});
+
+socket.on("typing", ({ sender, isTyping }) => {
+    const typingIndicator = document.getElementById("typingIndicator");
+    if (isTyping && sender === activeChatUser) {
+        typingIndicator.textContent = sender + " is typing...";
+    } else {
+        typingIndicator.textContent = "";
+    }
 });
