@@ -52,33 +52,28 @@ async function login() {
     }
 }
 
-// Request user list when connected
+// Fetch and update user list from server
 socket.on("connect", () => {
     socket.emit("request user list");
 });
 
 socket.on("user list", (users) => {
-    console.log("Received user list:", users); // Debugging line
+    console.log("Updated user list received:", users);
     const userListDiv = document.getElementById("userList");
     userListDiv.innerHTML = "";
     users.forEach(user => {
-        if (user.username !== currentUsername) {
+        if (user !== currentUsername) {
             const userDiv = document.createElement("div");
-            userDiv.textContent = `${user.username} (${user.status})`;
-            userDiv.onclick = () => startChat(user.username);
+            userDiv.textContent = user;
+            userDiv.onclick = () => startChat(user);
             userListDiv.appendChild(userDiv);
         }
     });
 });
 
-socket.on("new user", (user) => {
-    console.log("New user joined:", user); // Debugging line
-    socket.emit("request user list"); // Refresh user list when a new user joins
-});
-
 function startChat(username) {
     activeChatUser = username;
-    document.getElementById("chatHeader").textContent = username + " (Online)";
+    document.getElementById("chatHeader").textContent = `${username} (Online)`;
     document.getElementById("messages").innerHTML = "";
     socket.emit("get messages", { sender: currentUsername, receiver: username });
 }
@@ -115,7 +110,7 @@ document.getElementById("messageInput").addEventListener("input", () => {
 socket.on("typing", ({ sender, isTyping }) => {
     const typingIndicator = document.getElementById("typingIndicator");
     if (isTyping && sender === activeChatUser) {
-        typingIndicator.textContent = sender + " is typing...";
+        typingIndicator.textContent = `${sender} is typing...`;
     } else {
         typingIndicator.textContent = "";
     }
