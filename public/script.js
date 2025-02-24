@@ -1,39 +1,76 @@
+// public/script.js
 const socket = io("https://sidrayan.onrender.com/");
+const loginForm = document.getElementById("loginForm");
+const chatContainer = document.getElementById("chatContainer");
+const userListDiv = document.getElementById("userList");
 const messagesDiv = document.getElementById("messages");
 const messageInput = document.getElementById("messageInput");
 const sendButton = document.getElementById("sendButton");
+let currentUser = null;
+let currentChatUser = null;
 
-// Prompt for a username
-const username = prompt("Enter your username:") || "User-" + Math.floor(Math.random() * 10000);
-socket.emit("set username", username);
+// Handle login
+loginForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+    
+    const response = await fetch("/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+    });
+    
+    if (response.ok) {
+        currentUser = username;
+        socket.emit("set username", username);
+        document.getElementById("loginScreen").style.display = "none";
+        chatContainer.style.display = "block";
+    } else {
+        alert("Invalid credentials");
+    }
+});
 
-// Send a message
+// Update user list
+socket.on("user list", (users) => {
+    userListDiv.innerHTML = "";
+    Object.values(users).forEach((user) => {
+        if (user.username !== currentUser) {
+            const userElement = document.createElement("div");
+            userElement.textContent = `${user.username} (${user.status})`;
+            userElement.onclick = () => startChat(user.username);
+            userListDiv.appendChild(userElement);
+        }
+    });
+});
+
+// Start a private chat
+function startChat(username) {
+    currentChatUser = username;
+    messagesDiv.innerHTML = "";
+}
+
+// Send a private message
 sendButton.addEventListener("click", () => {
     const message = messageInput.value.trim();
-    if (message) {
-        socket.emit("chat message", { user: username, message });
+    if (message && currentChatUser) {
+        socket.emit("private message", { sender: currentUser, receiver: currentChatUser, message });
+        addMessageToChat({ sender: currentUser, message });
         messageInput.value = "";
     }
 });
 
-// Load chat history on connection
-socket.on("chat history", (messages) => {
-    messagesDiv.innerHTML = ""; // Clear existing messages
-    messages.forEach(addMessageToChat);
+// Receive private messages
+socket.on("private message", (data) => {
+    if (data.sender === currentChatUser || data.sender === currentUser) {
+        addMessageToChat(data);
+    }
 });
 
-// Receive new chat messages
-socket.on("chat message", addMessageToChat);
-
-// Update user list (for activity tracking)
-socket.on("user list", (users) => {
-    console.log("Active users:", users); // Can be updated to show online users in UI
-});
-
-// Function to add messages to chat
+// Function to display messages
 function addMessageToChat(data) {
     const msgElement = document.createElement("div");
-    msgElement.textContent = `${data.user}: ${data.message}`;
+    msgElement.textContent = `${data.sender}: ${data.message}`;
     messagesDiv.appendChild(msgElement);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
