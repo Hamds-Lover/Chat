@@ -47,13 +47,18 @@ async function login() {
         document.getElementById("chatContainer").style.display = "flex";
         currentUsername = username;
         socket.emit("set username", username);
-        socket.emit("request user list"); // Ensure user list is requested after login
     } else {
         alert("Invalid username or password.");
     }
 }
 
+// Request user list when connected
+socket.on("connect", () => {
+    socket.emit("request user list");
+});
+
 socket.on("user list", (users) => {
+    console.log("Received user list:", users); // Debugging line
     const userListDiv = document.getElementById("userList");
     userListDiv.innerHTML = "";
     users.forEach(user => {
@@ -67,9 +72,8 @@ socket.on("user list", (users) => {
 });
 
 socket.on("new user", (user) => {
-    if (user.username !== currentUsername) {
-        socket.emit("request user list"); // Refresh user list when a new user joins
-    }
+    console.log("New user joined:", user); // Debugging line
+    socket.emit("request user list"); // Refresh user list when a new user joins
 });
 
 function startChat(username) {
