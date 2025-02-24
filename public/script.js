@@ -52,6 +52,9 @@ async function login() {
     }
 }
 
+// Request the user list when connected
+socket.emit("request user list");
+
 socket.on("user list", (users) => {
     const userListDiv = document.getElementById("userList");
     userListDiv.innerHTML = "";
@@ -63,6 +66,16 @@ socket.on("user list", (users) => {
             userListDiv.appendChild(userDiv);
         }
     });
+});
+
+socket.on("new user", (user) => {
+    if (user.username !== currentUsername) {
+        const userListDiv = document.getElementById("userList");
+        const userDiv = document.createElement("div");
+        userDiv.textContent = `${user.username} (${user.status})`;
+        userDiv.onclick = () => startChat(user.username);
+        userListDiv.appendChild(userDiv);
+    }
 });
 
 function startChat(username) {
