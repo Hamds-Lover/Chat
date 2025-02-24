@@ -47,13 +47,11 @@ async function login() {
         document.getElementById("chatContainer").style.display = "flex";
         currentUsername = username;
         socket.emit("set username", username);
+        socket.emit("request user list"); // Ensure user list is requested after login
     } else {
         alert("Invalid username or password.");
     }
 }
-
-// Request the user list when connected
-socket.emit("request user list");
 
 socket.on("user list", (users) => {
     const userListDiv = document.getElementById("userList");
@@ -70,11 +68,7 @@ socket.on("user list", (users) => {
 
 socket.on("new user", (user) => {
     if (user.username !== currentUsername) {
-        const userListDiv = document.getElementById("userList");
-        const userDiv = document.createElement("div");
-        userDiv.textContent = `${user.username} (${user.status})`;
-        userDiv.onclick = () => startChat(user.username);
-        userListDiv.appendChild(userDiv);
+        socket.emit("request user list"); // Refresh user list when a new user joins
     }
 });
 
