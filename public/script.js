@@ -1,4 +1,4 @@
-const socket = io();
+const socket = io("https://sidrayan.onrender.com/");
 let currentUsername = "";
 let activeChatUser = "";
 
@@ -55,12 +55,14 @@ async function login() {
 socket.on("user list", (users) => {
     const userListDiv = document.getElementById("userList");
     userListDiv.innerHTML = "";
-    for (const id in users) {
-        const userDiv = document.createElement("div");
-        userDiv.textContent = users[id].username;
-        userDiv.onclick = () => startChat(users[id].username);
-        userListDiv.appendChild(userDiv);
-    }
+    users.forEach(user => {
+        if (user.username !== currentUsername) {
+            const userDiv = document.createElement("div");
+            userDiv.textContent = `${user.username} (${user.status})`;
+            userDiv.onclick = () => startChat(user.username);
+            userListDiv.appendChild(userDiv);
+        }
+    });
 });
 
 function startChat(username) {
@@ -81,10 +83,12 @@ function sendMessage() {
 }
 
 socket.on("private message", ({ sender, message }) => {
-    const messagesDiv = document.getElementById("messages");
-    const messageElement = document.createElement("p");
-    messageElement.textContent = `${sender}: ${message}`;
-    messagesDiv.appendChild(messageElement);
+    if (sender === activeChatUser || sender === currentUsername) {
+        const messagesDiv = document.getElementById("messages");
+        const messageElement = document.createElement("p");
+        messageElement.textContent = `${sender}: ${message}`;
+        messagesDiv.appendChild(messageElement);
+    }
 });
 
 // Typing Indicator
@@ -104,4 +108,19 @@ socket.on("typing", ({ sender, isTyping }) => {
     } else {
         typingIndicator.textContent = "";
     }
+});
+
+// Message Read Indicator
+socket.on("message read", ({ sender }) => {
+    if (sender === activeChatUser) {
+        document.getElementById("messageStatus").textContent = "Seen";
+    }
+});
+
+function markMessageAsRead() {
+    socket.emit("message read", { sender: currentUsername, receiver: activeChatUser });
+}
+
+document.getElementById("messages").addEventListener("DOMNodeInserted", () => {
+    markMessageAsRead();
 });
